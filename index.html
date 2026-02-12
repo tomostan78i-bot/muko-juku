@@ -73,7 +73,7 @@
         }
     }
 
-    async function login() {
+   async function login() {
     const id = document.getElementById('student-id').value;
     const pass = document.getElementById('birth-day').value;
     if(!id || !pass) return alert("番号と誕生日を入力してください");
@@ -83,12 +83,13 @@
     loginBtn.disabled = true;
 
     try {
-        // 余計なヘッダーを付けず、最もシンプルなPOSTで送る
+        // mode: "no-cors" を削除し、シンプルにPOSTします
         const response = await fetch(GAS_URL, {
             method: "POST",
             body: JSON.stringify({ type: "login", id: id, pass: pass })
         });
         
+        // GASからの返信を読み取ります
         const res = await response.json();
 
         if(res.result === "success") {
@@ -98,12 +99,12 @@
             document.getElementById('reserve-screen').classList.add('active');
             initMap();
         } else {
-            alert("ログイン失敗: " + (res.msg || "データがありません"));
+            alert("ログイン失敗: " + (res.msg || "データが一致しません"));
         }
     } catch(e) {
-        console.error(e);
-        // ここでエラーが出たら、URLが間違っているか、GASの設定が「全員」になっていません
-        alert("通信できませんでした。GASのURLを貼り直して、再度GitHubを更新してください。");
+        console.error("詳細エラー:", e);
+        // ここでエラーが出る場合は、URLが最新でないか、GAS側でsetHeaderが漏れています
+        alert("通信エラーが発生しました。ブラウザのコンソール(F12)を確認してください。");
     } finally {
         loginBtn.innerText = "ログイン";
         loginBtn.disabled = false;
@@ -188,6 +189,7 @@
 </script>
 </body>
 </html>
+
 
 
 
