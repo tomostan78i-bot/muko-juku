@@ -17,12 +17,10 @@
             cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold; color: #555;
         }
         .seat.reserved { background-color: #ccc; cursor: not-allowed; }
-        /* 学年別カラー */
         .selected-小 { background-color: #ffcccc !important; border: 2px solid #ff4444; }
         .selected-中 { background-color: #ccffcc !important; border: 2px solid #44bb44; }
         .selected-高 { background-color: #ccccff !important; border: 2px solid #4444ff; }
         .selected-etc { background-color: #ffffcc !important; border: 2px solid #bbbb44; }
-        
         .btn { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; }
         .btn:disabled { background: #ccc; }
         #status { margin: 15px 0; padding: 10px; background: #e9ecef; border-radius: 5px; width: 100%; text-align: center; }
@@ -42,29 +40,24 @@
     <div id="reserve-screen" class="screen">
         <h3>こんにちは、<span id="user-display"></span>さん</h3>
         <p>予約する席をタップしてください</p>
-        
         <div class="map-wrapper">
-            <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjN59KNoLsc_r-vCj_Lg0XG_tS0E-074X8-jO6v5P8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C/s1600/map.png" class="classroom-map">
+            <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjN59KNoLsc_r-vCj_Lg0XG_tS0E-074X8-jO6v5P8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C8R8v2C/s1600/map.png" class="classroom-map">
             <div id="seat-layers"></div>
         </div>
-
         <div id="status">席を選択してください</div>
-
         <label>開始時間：</label>
-        <select id="start-time" style="width:100%; padding:10px; margin-bottom:10px;">
-            </select>
-
+        <select id="start-time" style="width:100%; padding:10px; margin-bottom:10px;"></select>
         <button id="reserve-btn" class="btn" style="display:none;" onclick="reserve()">予約を確定する</button>
     </div>
 
 <script>
-    // ★★★ ここに新しいGASのURLを貼り付けてください ★★★
+    // ★★★ GASのURLをここに貼り付け ★★★
     const GAS_URL = "https://script.google.com/macros/s/AKfycbw3TPezAjSzMQkcocIPkZ6PGdsWDlB5VSw0FmdOEcxU_FhdCo8RNdkVqHNESvkdPr3V/exec";
     
     let currentUser = null;
     let selectedSeat = null;
 
-    // 時間の選択肢生成 (14:00 - 21:00)
+    // 時間生成
     const timeSelect = document.getElementById('start-time');
     for(let h=14; h<=21; h++) {
         ['00', '30'].forEach(m => {
@@ -75,6 +68,7 @@
         });
     }
 
+    // ★ログイン関数★
     async function login() {
         const id = document.getElementById('student-id').value;
         const pass = document.getElementById('birth-day').value;
@@ -85,17 +79,79 @@
         loginBtn.disabled = true;
 
         try {
-            // mode: 'cors' を指定し、Content-Typeを調整してCORSエラーを回避
             const response = await fetch(GAS_URL, {
                 method: "POST",
                 mode: "cors",
                 headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify({ type: "login", id: id, pass: pass })
             });
-            
             const res = await response.json();
-
             if(res.result === "success") {
                 currentUser = { id: id, name: res.name, grade: res.grade };
                 document.getElementById('user-display').innerText = res.name;
-                document.
+                document.getElementById('login-screen').classList.remove('active');
+                document.getElementById('reserve-screen').classList.add('active');
+                initMap();
+            } else {
+                alert("ログイン失敗: " + (res.msg || "データが一致しません"));
+            }
+        } catch(e) {
+            console.error("Login Error:", e);
+            alert("通信エラーが発生しました。");
+        } finally {
+            loginBtn.innerText = "ログイン";
+            loginBtn.disabled = false;
+        }
+    }
+
+    function initMap() {
+        const layers = document.getElementById('seat-layers');
+        layers.innerHTML = "";
+        const seats = [
+            {id: 1, x: 10, y: 20}, {id: 2, x: 20, y: 20}, {id: 3, x: 30, y: 20},
+            {id: 4, x: 10, y: 40}, {id: 5, x: 20, y: 40}, {id: 6, x: 30, y: 40},
+            {id: 7, x: 10, y: 60}, {id: 8, x: 20, y: 60}, {id: 9, x: 30, y: 60}, {id: 10, x: 45, y: 60}
+        ];
+        seats.forEach(pos => {
+            const div = document.createElement('div');
+            div.className = 'seat';
+            div.style.left = pos.x + "%";
+            div.style.top = pos.y + "%";
+            div.innerText = pos.id;
+            div.onclick = () => {
+                document.querySelectorAll('.seat').forEach(s => s.classList.remove('selected-小','selected-中','selected-高','selected-etc'));
+                const gradeChar = currentUser.grade ? currentUser.grade.charAt(0) : "他";
+                div.classList.add(['小', '中', '高'].includes(gradeChar) ? `selected-${gradeChar}` : 'selected-etc');
+                selectedSeat = pos.id;
+                document.getElementById('status').innerHTML = `<strong>${pos.id}番席</strong> (${currentUser.grade}) を選択中`;
+                document.getElementById('reserve-btn').style.display = 'block';
+            };
+            layers.appendChild(div);
+        });
+    }
+
+    // ★予約関数★
+    async function reserve() {
+        if(!selectedSeat) return;
+        const btn = document.getElementById('reserve-btn');
+        const time = document.getElementById('start-time').value;
+        btn.disabled = true;
+        btn.innerText = "送信中...";
+        try {
+            await fetch(GAS_URL, {
+                method: "POST",
+                mode: "cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({ type: "reserve", id: currentUser.id, seatId: selectedSeat, time: time })
+            });
+            alert(`${time}から${selectedSeat}番席の予約を承りました。`);
+            location.reload(); 
+        } catch(e) {
+            alert("予約エラーが発生しました。");
+            btn.disabled = false;
+            btn.innerText = "予約を確定する";
+        }
+    }
+</script>
+</body>
+</html>
