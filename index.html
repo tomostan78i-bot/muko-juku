@@ -74,41 +74,41 @@
     }
 
     async function login() {
-        const id = document.getElementById('student-id').value;
-        const pass = document.getElementById('birth-day').value;
-        if(!id || !pass) return alert("番号と誕生日を入力してください");
+    const id = document.getElementById('student-id').value;
+    const pass = document.getElementById('birth-day').value;
+    if(!id || !pass) return alert("番号と誕生日を入力してください");
 
-        const loginBtn = document.querySelector('#login-screen .btn');
-        loginBtn.innerText = "通信中...";
-        loginBtn.disabled = true;
+    const loginBtn = document.querySelector('#login-screen .btn');
+    loginBtn.innerText = "通信中...";
+    loginBtn.disabled = true;
 
-        try {
-            // mode: "no-cors" は消します（JSONを読み取るため）
-            const response = await fetch(GAS_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain" }, // GASはtext/plainで送るのがコツです
-                body: JSON.stringify({ type: "login", id: id, pass: pass })
-            });
-            
-            const res = await response.json();
+    try {
+        // 余計なヘッダーを付けず、最もシンプルなPOSTで送る
+        const response = await fetch(GAS_URL, {
+            method: "POST",
+            body: JSON.stringify({ type: "login", id: id, pass: pass })
+        });
+        
+        const res = await response.json();
 
-            if(res.result === "success") {
-                currentUser = { id: id, name: res.name, grade: res.grade };
-                document.getElementById('user-display').innerText = res.name;
-                document.getElementById('login-screen').classList.remove('active');
-                document.getElementById('reserve-screen').classList.add('active');
-                initMap();
-            } else {
-                alert("ログイン失敗: " + (res.msg || "データがありません"));
-            }
-        } catch(e) {
-            console.error("Error details:", e);
-            alert("通信エラーが発生しました。\n原因: " + e.message + "\n\n※GASのURLが最新か確認してください。");
-        } finally {
-            loginBtn.innerText = "ログイン";
-            loginBtn.disabled = false;
+        if(res.result === "success") {
+            currentUser = { id: id, name: res.name, grade: res.grade };
+            document.getElementById('user-display').innerText = res.name;
+            document.getElementById('login-screen').classList.remove('active');
+            document.getElementById('reserve-screen').classList.add('active');
+            initMap();
+        } else {
+            alert("ログイン失敗: " + (res.msg || "データがありません"));
         }
+    } catch(e) {
+        console.error(e);
+        // ここでエラーが出たら、URLが間違っているか、GASの設定が「全員」になっていません
+        alert("通信できませんでした。GASのURLを貼り直して、再度GitHubを更新してください。");
+    } finally {
+        loginBtn.innerText = "ログイン";
+        loginBtn.disabled = false;
     }
+}
 
     function initMap() {
         const seatPositions = [
@@ -188,6 +188,7 @@
 </script>
 </body>
 </html>
+
 
 
 
