@@ -57,7 +57,7 @@
 
 <script>
     // 新しくデプロイしたURLをここに貼り付けてください
-    const GAS_URL = "https://script.google.com/macros/s/AKfycby7BjlLR4Pae7tJcXUItaMJ5qWN2eCnXIcteVqv2vjYLhyaVwGTd-tL-cCBtL7zI1Hd/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxfTa7-jA4QVMkX66SgUQShuWaWrE5i9hViEq9ykuP0XWPDKBkS9ERL9-SEtlJIX7rm/exec";
     
     let currentUser = null;
     let selectedSeat = null;
@@ -79,16 +79,16 @@
         if(!id || !pass) return alert("番号と誕生日を入力してください");
 
         const loginBtn = document.querySelector('#login-screen .btn');
-        loginBtn.innerText = "認証中...";
+        loginBtn.innerText = "通信中...";
         loginBtn.disabled = true;
 
         try {
+            // mode: "no-cors" は消します（JSONを読み取るため）
             const response = await fetch(GAS_URL, {
                 method: "POST",
+                headers: { "Content-Type": "text/plain" }, // GASはtext/plainで送るのがコツです
                 body: JSON.stringify({ type: "login", id: id, pass: pass })
             });
-            
-            if (!response.ok) throw new Error("通信に失敗しました");
             
             const res = await response.json();
 
@@ -99,11 +99,11 @@
                 document.getElementById('reserve-screen').classList.add('active');
                 initMap();
             } else {
-                alert("ログイン失敗: " + (res.msg || "登録情報が見つかりません"));
+                alert("ログイン失敗: " + (res.msg || "データがありません"));
             }
         } catch(e) {
-            console.error(e);
-            alert("エラーが発生しました。GASのURLが正しいか、再デプロイされているか確認してください。\n内容: " + e.message);
+            console.error("Error details:", e);
+            alert("通信エラーが発生しました。\n原因: " + e.message + "\n\n※GASのURLが最新か確認してください。");
         } finally {
             loginBtn.innerText = "ログイン";
             loginBtn.disabled = false;
@@ -188,6 +188,7 @@
 </script>
 </body>
 </html>
+
 
 
 
